@@ -101,7 +101,7 @@ def schedule_post():
         db.session.add(new_scheduled_post)
         db.session.commit()
         
-        return redirect(url_for('project_summary'))
+        return jsonify({'success': True, 'redirect': url_for('project_summary')})
     except KeyError as e:
         return jsonify({'error': f'Missing required field: {str(e)}'}), 400
     except ValueError as e:
@@ -146,6 +146,8 @@ def billing():
             logger.info("Starting Stripe checkout session creation")
             total_credits = db.session.query(func.sum(Content.tokens_used)).scalar() or 0
             amount = int(total_credits * 5)  # $0.05 per token, convert to cents
+            
+            logger.info(f"Creating Stripe checkout session for {total_credits} credits, amount: ${amount/100:.2f}")
             
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
@@ -240,4 +242,4 @@ def simulate_posting():
 if __name__ == '__main__':
     logger.info("Starting the application...")
     threading.Thread(target=simulate_posting, daemon=True).start()
-    app.run(host='0.0.0.0', port=5000)
+    app.run(host="0.0.0.0", port=5000)

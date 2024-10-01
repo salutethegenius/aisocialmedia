@@ -131,7 +131,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    window.location.href = '/project_summary';
+                    const result = await response.json();
+                    if (result.redirect) {
+                        window.location.href = result.redirect;
+                    } else {
+                        scheduleModal.style.display = 'none';
+                        loadScheduledPosts();
+                    }
                 } else {
                     const error = await response.json();
                     throw new Error(error.error || 'Failed to schedule post');
@@ -149,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
             errorMessage.textContent = '';
 
             try {
+                console.log('Initiating checkout process');
                 const response = await fetch('/billing', {
                     method: 'POST',
                 });
@@ -158,14 +165,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const session = await response.json();
+                console.log('Received session ID:', session.id);
+                
+                if (!stripe) {
+                    console.error('Stripe.js not loaded');
+                    throw new Error('Stripe.js not loaded');
+                }
+
                 const result = await stripe.redirectToCheckout({ sessionId: session.id });
 
                 if (result.error) {
                     throw new Error(result.error.message);
                 }
             } catch (error) {
-                console.error('Error:', error);
-                errorMessage.textContent = 'An error occurred: ' + error.message;
+                console.error('Error during checkout:', error);
+                errorMessage.textContent = 'An error occurred during checkout: ' + error.message;
             } finally {
                 loadingIndicator.style.display = 'none';
             }
