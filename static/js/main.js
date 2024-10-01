@@ -39,12 +39,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentContentId = data.id;
                     generatedContent.style.display = 'block';
                 } else {
-                    const error = await response.json();
-                    alert(`Error: ${error.error}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'An error occurred while generating content');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while generating content.');
+                alert('An error occurred while generating content: ' + error.message);
             }
         });
     }
@@ -90,11 +90,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     location.reload();
                 } else {
                     const error = await response.json();
-                    alert(`Error: ${error.error}`);
+                    throw new Error(error.error || 'An error occurred while updating content');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while updating content.');
+                alert('An error occurred while updating content: ' + error.message);
             }
         });
     }
@@ -133,11 +133,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     loadScheduledPosts();
                 } else {
                     const error = await response.json();
-                    alert(`Error: ${error.error}`);
+                    throw new Error(error.error || 'An error occurred while scheduling the post');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while scheduling the post.');
+                alert('An error occurred while scheduling the post: ' + error.message);
             }
         });
     }
@@ -154,10 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     scheduledPostsList.appendChild(li);
                 });
             } else {
-                console.error('Failed to load scheduled posts');
+                throw new Error('Failed to load scheduled posts');
             }
         } catch (error) {
             console.error('Error:', error);
+            alert('An error occurred while loading scheduled posts: ' + error.message);
         }
     }
 
