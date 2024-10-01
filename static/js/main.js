@@ -128,11 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
+                    const result = await response.json();
                     scheduleModal.style.display = 'none';
-                    alert('Post scheduled successfully!');
+                    alert(result.message);
                     loadScheduledPosts();
                 } else {
-                    throw new Error('Failed to schedule post');
+                    const error = await response.json();
+                    throw new Error(error.error || 'Failed to schedule post');
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -154,7 +156,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 scheduledPostsList.innerHTML = '';
                 posts.forEach(post => {
                     const li = document.createElement('li');
-                    li.textContent = `Content ID: ${post.content_id}, Scheduled for: ${new Date(post.scheduled_time).toLocaleString()}, Platform: ${post.platform}, Status: ${post.status}`;
+                    li.textContent = `Topic: ${post.topic}, Scheduled for: ${new Date(post.scheduled_time).toLocaleString()}, Platform: ${post.platform}, Status: ${post.status}`;
                     scheduledPostsList.appendChild(li);
                 });
             } else {

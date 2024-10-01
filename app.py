@@ -88,31 +88,50 @@ def update_content():
 
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
-    content_id = request.json['content_id']
-    scheduled_time = datetime.fromisoformat(request.json['scheduled_time'])
-    platform = request.json['platform']
-    
-    new_scheduled_post = ScheduledPost(content_id=content_id, scheduled_time=scheduled_time, platform=platform, status='pending')
-    db.session.add(new_scheduled_post)
-    db.session.commit()
-    
-    return jsonify({'success': True, 'message': 'Post scheduled successfully'}), 200
+    try:
+        content_id = request.json['content_id']
+        scheduled_time = datetime.fromisoformat(request.json['scheduled_time'])
+        platform = request.json['platform']
+        
+        content = Content.query.get(content_id)
+        if not content:
+            return jsonify({'error': 'Content not found'}), 404
+        
+        new_scheduled_post = ScheduledPost(content_id=content_id, scheduled_time=scheduled_time, platform=platform, status='pending')
+        db.session.add(new_scheduled_post)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'message': 'Post scheduled successfully', 'post_id': new_scheduled_post.id}), 200
+    except KeyError as e:
+        return jsonify({'error': f'Missing required field: {str(e)}'}), 400
+    except ValueError as e:
+        return jsonify({'error': f'Invalid data format: {str(e)}'}), 400
+    except Exception as e:
+        logger.error(f"Error scheduling post: {str(e)}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
 
 @app.route('/get_scheduled_posts')
 def get_scheduled_posts():
-    scheduled_posts = ScheduledPost.query.all()
-    posts_data = []
+    try:
+        scheduled_posts = ScheduledPost.query.all()
+        posts_data = []
 
-    for post in scheduled_posts:
-        posts_data.append({
-            'id': post.id,
-            'content_id': post.content_id,
-            'scheduled_time': post.scheduled_time.isoformat(),
-            'platform': post.platform,
-            'status': post.status
-        })
+        for post in scheduled_posts:
+            content = Content.query.get(post.content_id)
+            if content:
+                posts_data.append({
+                    'id': post.id,
+                    'content_id': post.content_id,
+                    'topic': content.topic,
+                    'scheduled_time': post.scheduled_time.isoformat(),
+                    'platform': post.platform,
+                    'status': post.status
+                })
 
-    return jsonify(posts_data)
+        return jsonify(posts_data)
+    except Exception as e:
+        logger.error(f"Error fetching scheduled posts: {str(e)}")
+        return jsonify({'error': 'An error occurred while fetching scheduled posts'}), 500
 
 @app.route('/project_summary')
 def project_summary():
