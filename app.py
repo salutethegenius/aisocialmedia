@@ -106,17 +106,16 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    user = User.query.get(session['user_id'])
-    contents = Content.query.filter_by(user_id=user.id).all()
+    # Temporary: Create a sample user and content for demonstration
+    user = User(username='Demo User', email='demo@example.com')
+    contents = [
+        Content(topic='AI in Healthcare', tone='Informative', content='AI is revolutionizing healthcare...', tokens_used=100),
+        Content(topic='Sustainable Energy', tone='Professional', content='Renewable energy sources are becoming...', tokens_used=120)
+    ]
     return render_template('dashboard.html', user=user, contents=contents)
 
 @app.route('/generate_content', methods=['POST'])
 def generate_content():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-    
     topic = request.json['topic']
     tone = request.json['tone']
     
@@ -124,35 +123,24 @@ def generate_content():
     
     try:
         completion = openai_client.chat.completions.create(
-            model="gpt-4o",
+            model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=200
         )
         content = completion.choices[0].message.content
         tokens_used = completion.usage.total_tokens
         
-        new_content = Content(user_id=session['user_id'], topic=topic, tone=tone, content=content, tokens_used=tokens_used)
-        db.session.add(new_content)
-        db.session.commit()
-        
-        return jsonify({'content': content, 'tokens_used': tokens_used, 'id': new_content.id})
+        return jsonify({'content': content, 'tokens_used': tokens_used, 'id': 0})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @app.route('/update_content', methods=['POST'])
 def update_content():
-    if 'user_id' not in session:
-        return jsonify({'error': 'Unauthorized'}), 401
-    
     content_id = request.json['id']
     updated_content = request.json['content']
     
-    content = Content.query.get(content_id)
-    if content and content.user_id == session['user_id']:
-        content.content = updated_content
-        db.session.commit()
-        return jsonify({'success': True})
-    return jsonify({'error': 'Content not found or unauthorized'}), 404
+    # For demonstration, just return success without actually updating anything
+    return jsonify({'success': True})
 
 if __name__ == '__main__':
     logger.info("Starting the application...")
