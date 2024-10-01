@@ -28,8 +28,9 @@ if not OPENAI_API_KEY:
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY")
-if not STRIPE_API_KEY:
-    raise ValueError("STRIPE_API_KEY environment variable is not set")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY")
+if not STRIPE_API_KEY or not STRIPE_PUBLISHABLE_KEY:
+    raise ValueError("STRIPE_API_KEY or STRIPE_PUBLISHABLE_KEY environment variable is not set")
 stripe.api_key = STRIPE_API_KEY
 
 with app.app_context():
@@ -105,16 +106,15 @@ def get_scheduled_posts():
 @app.route('/project_summary')
 def project_summary():
     total_credits = db.session.query(func.sum(Content.tokens_used)).scalar() or 0
-    project_cost = total_credits * 5  # $5 per credit
+    project_cost = total_credits * 0.05  # $0.05 per token
     return render_template('project_summary.html', total_credits=total_credits, project_cost=project_cost)
 
 @app.route('/billing', methods=['GET', 'POST'])
 def billing():
     if request.method == 'POST':
         try:
-            recent_content = Content.query.order_by(Content.id.desc()).first()
-            
-            amount = recent_content.tokens_used * 5  # Amount in cents
+            total_credits = db.session.query(func.sum(Content.tokens_used)).scalar() or 0
+            amount = int(total_credits * 5)  # $0.05 per token, convert to cents
             
             checkout_session = stripe.checkout.Session.create(
                 payment_method_types=['card'],
@@ -123,24 +123,50 @@ def billing():
                         'currency': 'usd',
                         'unit_amount': amount,
                         'product_data': {
-                            'name': f'Content: {recent_content.topic}',
-                            'description': f'Generated content with {recent_content.tokens_used} tokens',
+                            'name': 'AI Content Generation',
+                            'description': f'Generated content with {total_credits} tokens',
                         },
                     },
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=url_for('thank_you', _external=True),
-                cancel_url=url_for('billing', _external=True),
+                success_url=request.host_url + url_for('thank_you'),
+                cancel_url=request.host_url + url_for('billing'),
             )
             
-            return redirect(checkout_session.url, code=303)
+            return jsonify({'id': checkout_session.id})
         except Exception as e:
             return str(e), 400
     
-    recent_content = Content.query.order_by(Content.id.desc()).first()
+    total_credits = db.session.query(func.sum(Content.tokens_used)).scalar() or 0
+    project_cost = total_credits * 0.05  # $0.05 per token
     
-    return render_template('billing.html', content=recent_content)
+    return render_template('billing.html', total_credits=total_credits, project_cost=project_cost, STRIPE_PUBLISHABLE_KEY=STRIPE_PUBLISHABLE_KEY)
+
+@app.route('/webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get('Stripe-Signature')
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, os.environ.get('STRIPE_WEBHOOK_SECRET')
+        )
+    except ValueError as e:
+        # Invalid payload
+        return 'Invalid payload', 400
+    except stripe.error.SignatureVerificationError as e:
+        # Invalid signature
+        return 'Invalid signature', 400
+
+    # Handle the checkout.session.completed event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+        # Here you can update your database to mark the payment as completed
+        # For example, update the ScheduledPost status to 'paid'
+        # You may need to store the Stripe session ID with the ScheduledPost to link them
+
+    return '', 200
 
 @app.route('/thank_you')
 def thank_you():

@@ -3,24 +3,35 @@
 {% block content %}
 <h2>Billing Information</h2>
 
-{% if content %}
-<h3>Content Details:</h3>
-<p><strong>Topic:</strong> {{ content.topic }}</p>
-<p><strong>Tone:</strong> {{ content.tone }}</p>
-<p><strong>Preview:</strong> {{ content.content[:100] }}...</p>
-<p><strong>Tokens Used:</strong> {{ content.tokens_used }}</p>
-<p><strong>Total Cost:</strong> ${{ "%.2f"|format(content.tokens_used * 0.05) }}</p>
-{% endif %}
+<h3>Project Summary:</h3>
+<p><strong>Total Tokens Used:</strong> {{ total_credits }}</p>
+<p><strong>Total Cost:</strong> ${{ "%.2f"|format(project_cost) }}</p>
 
-<form method="POST" action="{{ url_for('billing') }}">
-    <button type="submit" id="checkout-button">Proceed to Checkout</button>
-</form>
+<button id="checkout-button">Proceed to Checkout</button>
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
+    var stripe = Stripe('{{ STRIPE_PUBLISHABLE_KEY }}');
     var checkoutButton = document.getElementById('checkout-button');
+
     checkoutButton.addEventListener('click', function() {
-        // We'll handle the checkout in the server-side
+        fetch('/billing', {
+            method: 'POST',
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(session) {
+            return stripe.redirectToCheckout({ sessionId: session.id });
+        })
+        .then(function(result) {
+            if (result.error) {
+                alert(result.error.message);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+        });
     });
 </script>
 {% endblock %}
