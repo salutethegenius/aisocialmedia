@@ -5,6 +5,7 @@ from sqlalchemy.orm import DeclarativeBase
 from openai import OpenAI
 import logging
 from datetime import datetime
+from sqlalchemy import func
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -77,8 +78,8 @@ def update_content():
 
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
-    # Redirect to billing page instead of returning JSON
-    return redirect(url_for('billing'))
+    # Redirect to project summary page instead of billing
+    return redirect(url_for('project_summary'))
 
 @app.route('/get_scheduled_posts')
 def get_scheduled_posts():
@@ -95,6 +96,12 @@ def get_scheduled_posts():
         })
 
     return jsonify(posts_data)
+
+@app.route('/project_summary')
+def project_summary():
+    total_credits = db.session.query(func.sum(Content.tokens_used)).scalar() or 0
+    project_cost = total_credits * 5  # $5 per credit
+    return render_template('project_summary.html', total_credits=total_credits, project_cost=project_cost)
 
 @app.route('/billing', methods=['GET', 'POST'])
 def billing():

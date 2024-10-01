@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Project Summary</h2>
+<p>Total credits used: {{ total_credits }}</p>
+<p>Project cost: ${{ "%.2f"|format(project_cost) }}</p>
+<form action="{{ url_for('billing') }}" method="get">
+    <button type="submit" class="btn">Proceed to Billing</button>
+</form>
+{% endblock %}

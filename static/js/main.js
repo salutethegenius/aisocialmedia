@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    // Handle redirection to billing page
+                    // Handle redirection to project summary page
                     window.location.href = response.url;
                 } else {
                     throw new Error('Failed to schedule post');
