@@ -22,6 +22,9 @@ db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.secret_key = secrets.token_hex(16)
+
+from models import User, Content, ScheduledPost
+
 db.init_app(app)
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -32,8 +35,6 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 TWITTER_API_KEY = os.environ.get("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET")
 TWITTER_CALLBACK_URL = "http://localhost:5000/twitter/callback"
-
-from models import User, Content, ScheduledPost
 
 with app.app_context():
     db.create_all()
@@ -149,18 +150,10 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
-    # Temporarily bypass login check
-    # if 'user_id' not in session:
-    #     return redirect(url_for('login'))
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
     
-    # Temporary user for testing
-    user = User.query.first()
-    if not user:
-        user = User(username='test_user', email='test@example.com')
-        user.set_password('password')
-        db.session.add(user)
-        db.session.commit()
-
+    user = User.query.get(session['user_id'])
     contents = Content.query.filter_by(user_id=user.id).all()
     scheduled_posts = ScheduledPost.query.filter_by(user_id=user.id).all()
     return render_template('dashboard.html', user=user, contents=contents, scheduled_posts=scheduled_posts)
@@ -240,15 +233,10 @@ def twitter_callback():
 
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
-    # Temporarily bypass login check
-    # if 'user_id' not in session:
-    #     return jsonify({'error': 'User not logged in'}), 401
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
 
-    # Use the temporary user for testing
-    user = User.query.first()
-    if not user:
-        return jsonify({'error': 'No user found'}), 404
-
+    user = User.query.get(session['user_id'])
     content_id = request.json['content_id']
     scheduled_time = datetime.fromisoformat(request.json['scheduled_time'])
     platform = request.json['platform']
@@ -276,15 +264,10 @@ def schedule_post():
 
 @app.route('/get_scheduled_posts')
 def get_scheduled_posts():
-    # Temporarily bypass login check
-    # if 'user_id' not in session:
-    #     return jsonify({'error': 'User not logged in'}), 401
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
 
-    # Use the temporary user for testing
-    user = User.query.first()
-    if not user:
-        return jsonify({'error': 'No user found'}), 404
-
+    user = User.query.get(session['user_id'])
     scheduled_posts = ScheduledPost.query.filter_by(user_id=user.id).all()
     posts_data = []
 
