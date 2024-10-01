@@ -128,10 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    const result = await response.json();
-                    scheduleModal.style.display = 'none';
-                    alert(result.message);
-                    loadScheduledPosts();
+                    window.location.href = '/project_summary';
                 } else {
                     const error = await response.json();
                     throw new Error(error.error || 'Failed to schedule post');

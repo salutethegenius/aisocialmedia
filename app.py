@@ -101,7 +101,7 @@ def schedule_post():
         db.session.add(new_scheduled_post)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Post scheduled successfully', 'post_id': new_scheduled_post.id}), 200
+        return redirect(url_for('project_summary'))
     except KeyError as e:
         return jsonify({'error': f'Missing required field: {str(e)}'}), 400
     except ValueError as e:
