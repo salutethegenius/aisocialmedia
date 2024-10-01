@@ -10,45 +10,11 @@
 <button id="checkout-button">Proceed to Checkout</button>
 <div id="loading" style="display: none;">Processing...</div>
 <div id="error-message" style="color: red;"></div>
+<a id="fallback-link" href="#" style="display: none;">Click here to complete your payment</a>
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var stripePublishableKey = '{{ STRIPE_PUBLISHABLE_KEY }}';
-        var stripe = Stripe(stripePublishableKey);
-        var checkoutButton = document.getElementById('checkout-button');
-        var loadingIndicator = document.getElementById('loading');
-        var errorMessage = document.getElementById('error-message');
-
-        checkoutButton.addEventListener('click', function() {
-            loadingIndicator.style.display = 'block';
-            errorMessage.textContent = '';
-
-            fetch('/billing', {
-                method: 'POST',
-            })
-            .then(function(response) {
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
-            })
-            .then(function(session) {
-                return stripe.redirectToCheckout({ sessionId: session.id });
-            })
-            .then(function(result) {
-                if (result.error) {
-                    throw new Error(result.error.message);
-                }
-            })
-            .catch(function(error) {
-                console.error('Error:', error);
-                errorMessage.textContent = 'An error occurred: ' + error.message;
-            })
-            .finally(function() {
-                loadingIndicator.style.display = 'none';
-            });
-        });
-    });
+    var stripePublishableKey = '{{ STRIPE_PUBLISHABLE_KEY }}';
 </script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% endblock %}

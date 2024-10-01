@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const checkoutButton = document.getElementById('checkout-button');
     const loadingIndicator = document.getElementById('loading');
     const errorMessage = document.getElementById('error-message');
+    const fallbackLink = document.getElementById('fallback-link');
 
     let currentContentId = null;
 
@@ -152,10 +153,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (checkoutButton && loadingIndicator && errorMessage) {
+    if (checkoutButton && loadingIndicator && errorMessage && fallbackLink) {
         checkoutButton.addEventListener('click', async () => {
             loadingIndicator.style.display = 'block';
             errorMessage.textContent = '';
+            fallbackLink.style.display = 'none';
 
             try {
                 console.log('Initiating checkout process');
@@ -176,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 const stripe = Stripe(stripePublishableKey);
+                console.log('Redirecting to Stripe checkout');
                 const result = await stripe.redirectToCheckout({ sessionId: session.id });
 
                 if (result.error) {
@@ -184,6 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Error during checkout:', error);
                 errorMessage.textContent = 'An error occurred during checkout: ' + error.message;
+                fallbackLink.href = '/billing?session_id=' + session.id;
+                fallbackLink.style.display = 'block';
             } finally {
                 loadingIndicator.style.display = 'none';
             }
