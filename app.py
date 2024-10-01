@@ -6,6 +6,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 import secrets
 import logging
+from requests_oauthlib import OAuth1Session
+import tweepy
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -25,6 +27,11 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+# Twitter API credentials
+TWITTER_API_KEY = os.environ.get("TWITTER_API_KEY")
+TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET")
+TWITTER_CALLBACK_URL = "http://localhost:5000/twitter/callback"
 
 from models import User, Content
 
@@ -106,12 +113,11 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
-    # Temporary: Create a sample user and content for demonstration
-    user = User(username='Demo User', email='demo@example.com')
-    contents = [
-        Content(topic='AI in Healthcare', tone='Informative', content='AI is revolutionizing healthcare...', tokens_used=100),
-        Content(topic='Sustainable Energy', tone='Professional', content='Renewable energy sources are becoming...', tokens_used=120)
-    ]
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    contents = Content.query.filter_by(user_id=user.id).all()
     return render_template('dashboard.html', user=user, contents=contents)
 
 @app.route('/generate_content', methods=['POST'])
@@ -141,6 +147,53 @@ def update_content():
     
     # For demonstration, just return success without actually updating anything
     return jsonify({'success': True})
+
+@app.route('/twitter/login')
+def twitter_login():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    oauth = OAuth1Session(TWITTER_API_KEY, client_secret=TWITTER_API_SECRET)
+    try:
+        resp = oauth.fetch_request_token("https://api.twitter.com/oauth/request_token")
+        authorization_url = oauth.authorization_url("https://api.twitter.com/oauth/authorize")
+        session['request_token'] = resp.get('oauth_token')
+        session['request_token_secret'] = resp.get('oauth_token_secret')
+        return redirect(authorization_url)
+    except Exception as e:
+        logger.error(f"Error during Twitter OAuth: {str(e)}")
+        return redirect(url_for('dashboard'))
+
+@app.route('/twitter/callback')
+def twitter_callback():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    request_token = session.get('request_token')
+    request_token_secret = session.get('request_token_secret')
+    
+    oauth = OAuth1Session(
+        TWITTER_API_KEY,
+        client_secret=TWITTER_API_SECRET,
+        resource_owner_key=request_token,
+        resource_owner_secret=request_token_secret
+    )
+    
+    try:
+        oauth_tokens = oauth.fetch_access_token("https://api.twitter.com/oauth/access_token")
+        session['twitter_token'] = oauth_tokens.get('oauth_token')
+        session['twitter_token_secret'] = oauth_tokens.get('oauth_token_secret')
+        
+        # Save Twitter tokens to user's record in the database
+        user = User.query.get(session['user_id'])
+        user.twitter_token = session['twitter_token']
+        user.twitter_token_secret = session['twitter_token_secret']
+        db.session.commit()
+        
+        return redirect(url_for('dashboard'))
+    except Exception as e:
+        logger.error(f"Error during Twitter OAuth callback: {str(e)}")
+        return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
     logger.info("Starting the application...")
