@@ -26,6 +26,18 @@ from models import User, Content
 with app.app_context():
     db.create_all()
 
+def create_test_user():
+    with app.app_context():
+        test_user = User.query.filter_by(username='testuser').first()
+        if not test_user:
+            test_user = User(username='testuser', email='testuser@example.com')
+            test_user.set_password('testpassword')
+            db.session.add(test_user)
+            db.session.commit()
+            print("Test user created successfully.")
+        else:
+            print("Test user already exists.")
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -98,4 +110,5 @@ def update_content():
     return jsonify({'error': 'Content not found or unauthorized'}), 404
 
 if __name__ == '__main__':
+    create_test_user()
     app.run(host='0.0.0.0', port=5000)
