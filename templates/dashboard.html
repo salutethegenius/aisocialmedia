@@ -5,27 +5,12 @@
 
 <div id="content-generator">
     <h3>Generate New Content</h3>
-    <form id="generate-form">
-        <div>
-            <label for="topic">Topic:</label>
-            <input type="text" id="topic" name="topic" required>
+    <div class="chat-container">
+        <div id="chat-messages" class="chat-messages"></div>
+        <div class="chat-input">
+            <input type="text" id="user-input" placeholder="Enter your topic...">
+            <button id="send-button" class="btn"><i class="fas fa-paper-plane"></i> Send</button>
         </div>
-        <div>
-            <label for="tone">Tone:</label>
-            <select id="tone" name="tone" required>
-                <option value="informative">Informative</option>
-                <option value="casual">Casual</option>
-                <option value="professional">Professional</option>
-                <option value="humorous">Humorous</option>
-            </select>
-        </div>
-        <button type="submit">Generate Content</button>
-    </form>
-    <div id="generated-content" style="display: none;">
-        <h4>Generated Content:</h4>
-        <textarea id="content-text" rows="10" cols="50"></textarea>
-        <p>Tokens used: <span id="tokens-used"></span></p>
-        <button id="save-content">Save Content</button>
     </div>
 </div>
 
@@ -36,8 +21,8 @@
             <h4>{{ content.topic }} ({{ content.tone }})</h4>
             <p>{{ content.content[:100] }}...</p>
             <p>Tokens used: {{ content.tokens_used }}</p>
-            <button class="edit-content" data-id="{{ content.id }}">Edit</button>
-            <button class="schedule-post" data-id="{{ content.id }}">Schedule Post</button>
+            <button class="edit-content btn" data-id="{{ content.id }}"><i class="fas fa-edit"></i> Edit</button>
+            <button class="schedule-post btn" data-id="{{ content.id }}"><i class="fas fa-calendar-alt"></i> Schedule Post</button>
         </div>
     {% endfor %}
 </div>
@@ -51,8 +36,8 @@
     <div class="modal-content">
         <h3>Edit Content</h3>
         <textarea id="edit-content-text" rows="10" cols="50"></textarea>
-        <button id="update-content">Update</button>
-        <button id="close-modal">Close</button>
+        <button id="update-content" class="btn"><i class="fas fa-save"></i> Update</button>
+        <button id="close-modal" class="btn"><i class="fas fa-times"></i> Close</button>
     </div>
 </div>
 
@@ -72,8 +57,8 @@
                     <!-- Add other platforms here -->
                 </select>
             </div>
-            <button type="submit">Schedule</button>
-            <button id="close-schedule-modal">Cancel</button>
+            <button type="submit" class="btn"><i class="fas fa-calendar-check"></i> Schedule</button>
+            <button id="close-schedule-modal" class="btn"><i class="fas fa-times"></i> Cancel</button>
         </form>
     </div>
 </div>

@@ -1,9 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const generateForm = document.getElementById('generate-form');
-    const generatedContent = document.getElementById('generated-content');
-    const contentText = document.getElementById('content-text');
-    const tokensUsed = document.getElementById('tokens-used');
-    const saveContentBtn = document.getElementById('save-content');
+    const chatMessages = document.getElementById('chat-messages');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
     const editButtons = document.querySelectorAll('.edit-content');
     const scheduleButtons = document.querySelectorAll('.schedule-post');
     const editModal = document.getElementById('edit-modal');
@@ -14,49 +12,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeScheduleModalBtn = document.getElementById('close-schedule-modal');
     const scheduleForm = document.getElementById('schedule-form');
     const scheduledPostsList = document.getElementById('scheduled-posts-list');
-    const checkoutButton = document.getElementById('checkout-button');
-    const loadingIndicator = document.getElementById('loading');
-    const errorMessage = document.getElementById('error-message');
-    const fallbackLink = document.getElementById('fallback-link');
 
     let currentContentId = null;
 
-    if (generateForm) {
-        generateForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const topic = document.getElementById('topic').value;
-            const tone = document.getElementById('tone').value;
-
-            try {
-                const response = await fetch('/generate_content', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ topic, tone }),
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    contentText.value = data.content;
-                    tokensUsed.textContent = data.tokens_used;
-                    currentContentId = data.id;
-                    generatedContent.style.display = 'block';
-                } else {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'An error occurred while generating content');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while generating content: ' + error.message);
+    if (sendButton && userInput) {
+        sendButton.addEventListener('click', () => generateContent());
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                generateContent();
             }
         });
     }
 
-    if (saveContentBtn) {
-        saveContentBtn.addEventListener('click', () => {
-            location.reload();
-        });
+    async function generateContent() {
+        const topic = userInput.value.trim();
+        if (!topic) return;
+
+        addMessage('user', topic);
+        userInput.value = '';
+
+        try {
+            const response = await fetch('/generate_content', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ topic, tone: 'informative' }),
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                addMessage('bot', data.content);
+                currentContentId = data.id;
+            } else {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'An error occurred while generating content');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            addMessage('error', 'An error occurred while generating content: ' + error.message);
+        }
+    }
+
+    function addMessage(sender, message) {
+        const messageElement = document.createElement('div');
+        messageElement.classList.add('message', sender);
+        messageElement.textContent = message;
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     editButtons.forEach(button => {
@@ -153,50 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (checkoutButton && loadingIndicator && errorMessage && fallbackLink) {
-        checkoutButton.addEventListener('click', async () => {
-            loadingIndicator.style.display = 'block';
-            errorMessage.textContent = '';
-            fallbackLink.style.display = 'none';
-
-            try {
-                console.log('Initiating checkout process');
-                const response = await fetch('/billing', {
-                    method: 'POST',
-                });
-
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
-                const session = await response.json();
-                console.log('Received session ID:', session.id);
-                
-                if (typeof Stripe === 'undefined') {
-                    console.error('Stripe.js not loaded');
-                    throw new Error('Stripe.js not loaded');
-                }
-
-                const stripe = Stripe(stripePublishableKey);
-                console.log('Redirecting to Stripe checkout');
-                const result = await stripe.redirectToCheckout({ sessionId: session.id });
-
-                if (result.error) {
-                    throw new Error(result.error.message);
-                }
-            } catch (error) {
-                console.error('Error during checkout:', error);
-                errorMessage.textContent = 'An error occurred during checkout: ' + error.message;
-                fallbackLink.href = '/billing?session_id=' + session.id;
-                fallbackLink.style.display = 'block';
-            } finally {
-                loadingIndicator.style.display = 'none';
-            }
-        });
-    }
-
     async function loadScheduledPosts() {
-        const scheduledPostsList = document.getElementById('scheduled-posts-list');
         if (!scheduledPostsList) {
             console.log('Scheduled posts list not found on this page');
             return;

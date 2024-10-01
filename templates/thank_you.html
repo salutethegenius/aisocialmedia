@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Thank You!</h2>
-<p>Your payment has been processed successfully. Your post has been scheduled.</p>
-<a href="{{ url_for('dashboard') }}" class="btn">Return to Dashboard</a>
+<div class="content-item">
+    <h2>Thank You!</h2>
+    <p>Your payment has been processed successfully. Your post has been scheduled.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn"><i class="fas fa-tachometer-alt"></i> Return to Dashboard</a>
+</div>
 {% endblock %}

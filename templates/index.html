@@ -1,7 +1,9 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>Welcome to AI Content Generator</h1>
-<p>Generate high-quality content with the power of AI.</p>
-<a href="{{ url_for('dashboard') }}" class="btn">Get Started</a>
+<div class="content-item">
+    <h1>Welcome to AI Content Generator</h1>
+    <p>Generate high-quality content with the power of AI.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn"><i class="fas fa-rocket"></i> Get Started</a>
+</div>
 {% endblock %}

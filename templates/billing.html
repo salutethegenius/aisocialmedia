@@ -1,16 +1,18 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Billing Information</h2>
+<div class="content-item">
+    <h2>Billing Information</h2>
 
-<h3>Project Summary:</h3>
-<p><strong>Total Tokens Used:</strong> {{ total_credits }}</p>
-<p><strong>Total Cost:</strong> ${{ "%.2f"|format(project_cost) }}</p>
+    <h3>Project Summary:</h3>
+    <p><strong>Total Tokens Used:</strong> {{ total_credits }}</p>
+    <p><strong>Total Cost:</strong> ${{ "%.2f"|format(project_cost) }}</p>
 
-<button id="checkout-button">Proceed to Checkout</button>
-<div id="loading" style="display: none;">Processing...</div>
-<div id="error-message" style="color: red;"></div>
-<a id="fallback-link" href="#" style="display: none;">Click here to complete your payment</a>
+    <button id="checkout-button" class="btn"><i class="fas fa-shopping-cart"></i> Proceed to Checkout</button>
+    <div id="loading" style="display: none;">Processing...</div>
+    <div id="error-message" class="error"></div>
+    <a id="fallback-link" href="#" style="display: none;" class="btn"><i class="fas fa-external-link-alt"></i> Click here to complete your payment</a>
+</div>
 
 <script src="https://js.stripe.com/v3/"></script>
 <script>
