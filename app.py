@@ -39,25 +39,25 @@ def test_db_connection():
     except Exception as e:
         logger.error(f"Database connection failed: {str(e)}")
 
-def create_test_user():
+def create_user():
     with app.app_context():
         logger.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
-        logger.info("Attempting to create test user...")
+        logger.info("Attempting to create user...")
         try:
-            test_user = User.query.filter_by(username='testuser').first()
-            if not test_user:
-                test_user = User(username='testuser', email='testuser@example.com')
-                test_user.set_password('testpassword')
-                db.session.add(test_user)
+            user = User.query.filter_by(username='ken').first()
+            if not user:
+                user = User(username='ken', email='ken@example.com')
+                user.set_password('1234')
+                db.session.add(user)
                 db.session.commit()
-                logger.info("Test user created successfully.")
+                logger.info("User created successfully.")
             else:
-                logger.info("Test user already exists.")
-            logger.info(f"Username: {test_user.username}")
-            logger.info(f"Email: {test_user.email}")
-            logger.info(f"Password hash: {test_user.password_hash}")
+                logger.info("User already exists.")
+            logger.info(f"Username: {user.username}")
+            logger.info(f"Email: {user.email}")
+            logger.info(f"Password hash: {user.password_hash}")
         except Exception as e:
-            logger.error(f"Error creating/retrieving test user: {str(e)}")
+            logger.error(f"Error creating/retrieving user: {str(e)}")
 
 def print_all_users():
     with app.app_context():
@@ -157,6 +157,6 @@ def update_content():
 if __name__ == '__main__':
     logger.info("Starting the application...")
     test_db_connection()
-    create_test_user()
+    create_user()
     print_all_users()
     app.run(host='0.0.0.0', port=5000)
