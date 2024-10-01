@@ -33,6 +33,7 @@ with app.app_context():
 
 def create_test_user():
     with app.app_context():
+        logger.info("Attempting to create test user...")
         test_user = User.query.filter_by(username='testuser').first()
         if not test_user:
             test_user = User(username='testuser', email='testuser@example.com')
@@ -49,6 +50,13 @@ def create_test_user():
             logger.info(f"Email: {test_user.email}")
             logger.info(f"Password hash: {test_user.password_hash}")
 
+def print_all_users():
+    with app.app_context():
+        logger.info("Printing all users in the database:")
+        users = User.query.all()
+        for user in users:
+            logger.info(f"User ID: {user.id}, Username: {user.username}, Email: {user.email}")
+
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -58,8 +66,10 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(username=username).first()
         logger.info(f"Login attempt - Username: {username}")
+        logger.info(f"Submitted password hash: {generate_password_hash(password)}")
+        
+        user = User.query.filter_by(username=username).first()
         if user:
             logger.info(f"User found - Username: {user.username}, Email: {user.email}")
             logger.info(f"Stored password hash: {user.password_hash}")
@@ -132,4 +142,5 @@ def update_content():
 if __name__ == '__main__':
     logger.info("Starting the application...")
     create_test_user()
+    print_all_users()
     app.run(host='0.0.0.0', port=5000)
