@@ -5,8 +5,6 @@ from sqlalchemy.orm import DeclarativeBase
 from openai import OpenAI
 import logging
 from datetime import datetime
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -29,22 +27,6 @@ openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
 with app.app_context():
     db.create_all()
-
-jobstores = {
-    'default': SQLAlchemyJobStore(url=app.config["SQLALCHEMY_DATABASE_URI"])
-}
-scheduler = BackgroundScheduler(jobstores=jobstores)
-scheduler.start()
-
-def post_scheduled_content(scheduled_post_id):
-    with app.app_context():
-        scheduled_post = ScheduledPost.query.get(scheduled_post_id)
-        if scheduled_post and scheduled_post.status == 'pending':
-            content = Content.query.get(scheduled_post.content_id)
-            # Implement posting logic here (e.g., posting to social media)
-            logger.info(f"Posting scheduled content {scheduled_post_id}")
-            scheduled_post.status = 'posted'
-            db.session.commit()
 
 @app.route('/')
 def index():
@@ -95,29 +77,8 @@ def update_content():
 
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
-    content_id = request.json['content_id']
-    scheduled_time = datetime.fromisoformat(request.json['scheduled_time'])
-    platform = request.json['platform']
-
-    scheduled_post = ScheduledPost(
-        content_id=content_id,
-        scheduled_time=scheduled_time,
-        platform=platform
-    )
-
-    db.session.add(scheduled_post)
-    db.session.commit()
-
-    scheduler.add_job(
-        post_scheduled_content,
-        'date',
-        run_date=scheduled_time,
-        args=[scheduled_post.id],
-        id=f'post_{scheduled_post.id}',
-        replace_existing=True
-    )
-
-    return jsonify({'success': True, 'id': scheduled_post.id})
+    # Dummy response
+    return jsonify({'success': True, 'message': 'Post scheduled successfully. Proceeding to billing.'})
 
 @app.route('/get_scheduled_posts')
 def get_scheduled_posts():

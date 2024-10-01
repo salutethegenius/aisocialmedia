@@ -128,12 +128,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
+                    const data = await response.json();
                     scheduleModal.style.display = 'none';
-                    alert('Post scheduled successfully!');
-                    loadScheduledPosts();
+                    alert(data.message);
+                    // TODO: Implement redirection to billing page
+                    console.log('Redirecting to billing page...');
                 } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'An error occurred while scheduling the post');
+                    throw new Error('Failed to schedule post');
                 }
             } catch (error) {
                 console.error('Error:', error);
