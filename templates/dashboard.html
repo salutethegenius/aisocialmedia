@@ -47,8 +47,14 @@
             <p>{{ content.content[:100] }}...</p>
             <p>Tokens used: {{ content.tokens_used }}</p>
             <button class="edit-content" data-id="{{ content.id }}">Edit</button>
+            <button class="schedule-post" data-id="{{ content.id }}">Schedule Post</button>
         </div>
     {% endfor %}
+</div>
+
+<div id="scheduled-posts">
+    <h3>Scheduled Posts</h3>
+    <ul id="scheduled-posts-list"></ul>
 </div>
 
 <div id="edit-modal" class="modal" style="display: none;">
@@ -57,6 +63,28 @@
         <textarea id="edit-content-text" rows="10" cols="50"></textarea>
         <button id="update-content">Update</button>
         <button id="close-modal">Close</button>
+    </div>
+</div>
+
+<div id="schedule-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>Schedule Post</h3>
+        <form id="schedule-form">
+            <input type="hidden" id="schedule-content-id">
+            <div>
+                <label for="schedule-time">Schedule Time:</label>
+                <input type="datetime-local" id="schedule-time" required>
+            </div>
+            <div>
+                <label for="schedule-platform">Platform:</label>
+                <select id="schedule-platform" required>
+                    <option value="twitter">Twitter</option>
+                    <!-- Add other platforms here -->
+                </select>
+            </div>
+            <button type="submit">Schedule</button>
+            <button id="close-schedule-modal">Cancel</button>
+        </form>
     </div>
 </div>
 {% endblock %}

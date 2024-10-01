@@ -8,8 +8,10 @@ import secrets
 import logging
 from requests_oauthlib import OAuth1Session
 import tweepy
+from datetime import datetime, timedelta
+from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -22,21 +24,25 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
 app.secret_key = secrets.token_hex(16)
 db.init_app(app)
 
-# OpenAI setup
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
-# Twitter API credentials
 TWITTER_API_KEY = os.environ.get("TWITTER_API_KEY")
 TWITTER_API_SECRET = os.environ.get("TWITTER_API_SECRET")
 TWITTER_CALLBACK_URL = "http://localhost:5000/twitter/callback"
 
-from models import User, Content
+from models import User, Content, ScheduledPost
 
 with app.app_context():
     db.create_all()
+
+jobstores = {
+    'default': SQLAlchemyJobStore(url=app.config["SQLALCHEMY_DATABASE_URI"])
+}
+scheduler = BackgroundScheduler(jobstores=jobstores)
+scheduler.start()
 
 def test_db_connection():
     try:
@@ -72,6 +78,36 @@ def print_all_users():
         users = User.query.all()
         for user in users:
             logger.info(f"User ID: {user.id}, Username: {user.username}, Email: {user.email}")
+
+def post_scheduled_content(scheduled_post_id):
+    with app.app_context():
+        scheduled_post = ScheduledPost.query.get(scheduled_post_id)
+        if scheduled_post and scheduled_post.status == 'pending':
+            user = User.query.get(scheduled_post.user_id)
+            content = Content.query.get(scheduled_post.content_id)
+
+            if scheduled_post.platform == 'twitter':
+                if user.twitter_token and user.twitter_token_secret:
+                    auth = tweepy.OAuthHandler(TWITTER_API_KEY, TWITTER_API_SECRET)
+                    auth.set_access_token(user.twitter_token, user.twitter_token_secret)
+                    api = tweepy.API(auth)
+                    try:
+                        api.update_status(content.content[:280])
+                        scheduled_post.status = 'posted'
+                        db.session.commit()
+                        logger.info(f"Posted scheduled content {scheduled_post_id} to Twitter")
+                    except Exception as e:
+                        logger.error(f"Error posting to Twitter: {str(e)}")
+                        scheduled_post.status = 'failed'
+                        db.session.commit()
+                else:
+                    logger.error(f"User {user.id} has not connected their Twitter account")
+                    scheduled_post.status = 'failed'
+                    db.session.commit()
+            else:
+                logger.error(f"Unsupported platform: {scheduled_post.platform}")
+                scheduled_post.status = 'failed'
+                db.session.commit()
 
 @app.route('/')
 def index():
@@ -145,7 +181,6 @@ def update_content():
     content_id = request.json['id']
     updated_content = request.json['content']
     
-    # For demonstration, just return success without actually updating anything
     return jsonify({'success': True})
 
 @app.route('/twitter/login')
@@ -184,7 +219,6 @@ def twitter_callback():
         session['twitter_token'] = oauth_tokens.get('oauth_token')
         session['twitter_token_secret'] = oauth_tokens.get('oauth_token_secret')
         
-        # Save Twitter tokens to user's record in the database
         user = User.query.get(session['user_id'])
         user.twitter_token = session['twitter_token']
         user.twitter_token_secret = session['twitter_token_secret']
@@ -194,6 +228,55 @@ def twitter_callback():
     except Exception as e:
         logger.error(f"Error during Twitter OAuth callback: {str(e)}")
         return redirect(url_for('dashboard'))
+
+@app.route('/schedule_post', methods=['POST'])
+def schedule_post():
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    content_id = request.json['content_id']
+    scheduled_time = datetime.fromisoformat(request.json['scheduled_time'])
+    platform = request.json['platform']
+
+    scheduled_post = ScheduledPost(
+        user_id=session['user_id'],
+        content_id=content_id,
+        scheduled_time=scheduled_time,
+        platform=platform
+    )
+
+    db.session.add(scheduled_post)
+    db.session.commit()
+
+    scheduler.add_job(
+        post_scheduled_content,
+        'date',
+        run_date=scheduled_time,
+        args=[scheduled_post.id],
+        id=f'post_{scheduled_post.id}',
+        replace_existing=True
+    )
+
+    return jsonify({'success': True, 'id': scheduled_post.id})
+
+@app.route('/get_scheduled_posts')
+def get_scheduled_posts():
+    if 'user_id' not in session:
+        return jsonify({'error': 'User not logged in'}), 401
+
+    scheduled_posts = ScheduledPost.query.filter_by(user_id=session['user_id']).all()
+    posts_data = []
+
+    for post in scheduled_posts:
+        posts_data.append({
+            'id': post.id,
+            'content_id': post.content_id,
+            'scheduled_time': post.scheduled_time.isoformat(),
+            'platform': post.platform,
+            'status': post.status
+        })
+
+    return jsonify(posts_data)
 
 if __name__ == '__main__':
     logger.info("Starting the application...")
