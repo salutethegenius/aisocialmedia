@@ -11,12 +11,7 @@
         <nav>
             <ul>
                 <li><a href="{{ url_for('index') }}">Home</a></li>
-                {% if 'user_id' in session %}
-                    <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
-                    <li><a href="{{ url_for('logout') }}">Logout</a></li>
-                {% else %}
-                    <li><a href="{{ url_for('login') }}">Login</a></li>
-                {% endif %}
+                <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
             </ul>
         </nav>
     </header>

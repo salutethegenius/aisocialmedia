@@ -3,9 +3,5 @@
 {% block content %}
 <h1>Welcome to AI Content Generator</h1>
 <p>Generate high-quality content with the power of AI.</p>
-{% if 'user_id' not in session %}
-    <a href="{{ url_for('login') }}" class="btn">Login to Get Started</a>
-{% else %}
-    <a href="{{ url_for('dashboard') }}" class="btn">Go to Dashboard</a>
-{% endif %}
+<a href="{{ url_for('dashboard') }}" class="btn">Get Started</a>
 {% endblock %}
