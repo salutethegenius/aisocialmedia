@@ -128,7 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    window.location.href = response.url;
+                    scheduleModal.style.display = 'none';
+                    alert('Post scheduled successfully!');
+                    loadScheduledPosts();
                 } else {
                     throw new Error('Failed to schedule post');
                 }

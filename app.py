@@ -7,6 +7,8 @@ import logging
 from datetime import datetime
 from sqlalchemy import func
 import stripe
+import threading
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -85,6 +87,14 @@ def update_content():
 
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
+    content_id = request.json['content_id']
+    scheduled_time = datetime.fromisoformat(request.json['scheduled_time'])
+    platform = request.json['platform']
+    
+    new_scheduled_post = ScheduledPost(content_id=content_id, scheduled_time=scheduled_time, platform=platform, status='pending')
+    db.session.add(new_scheduled_post)
+    db.session.commit()
+    
     return redirect(url_for('project_summary'))
 
 @app.route('/get_scheduled_posts')
@@ -153,18 +163,17 @@ def stripe_webhook():
             payload, sig_header, os.environ.get('STRIPE_WEBHOOK_SECRET')
         )
     except ValueError as e:
-        # Invalid payload
         return 'Invalid payload', 400
     except stripe.error.SignatureVerificationError as e:
-        # Invalid signature
         return 'Invalid signature', 400
 
-    # Handle the checkout.session.completed event
     if event['type'] == 'checkout.session.completed':
         session = event['data']['object']
-        # Here you can update your database to mark the payment as completed
-        # For example, update the ScheduledPost status to 'paid'
-        # You may need to store the Stripe session ID with the ScheduledPost to link them
+        
+        # Update all pending scheduled posts to 'paid'
+        with app.app_context():
+            ScheduledPost.query.filter_by(status='pending').update({ScheduledPost.status: 'paid'})
+            db.session.commit()
 
     return '', 200
 
@@ -172,6 +181,24 @@ def stripe_webhook():
 def thank_you():
     return render_template('thank_you.html')
 
+def simulate_posting():
+    while True:
+        with app.app_context():
+            current_time = datetime.utcnow()
+            posts_to_publish = ScheduledPost.query.filter(
+                ScheduledPost.status == 'paid',
+                ScheduledPost.scheduled_time <= current_time
+            ).all()
+
+            for post in posts_to_publish:
+                # Simulate posting to the platform
+                logger.info(f"Simulating post to {post.platform}: Content ID {post.content_id}")
+                post.status = 'published'
+                db.session.commit()
+
+        time.sleep(60)  # Check every minute
+
 if __name__ == '__main__':
     logger.info("Starting the application...")
+    threading.Thread(target=simulate_posting, daemon=True).start()
     app.run(host='0.0.0.0', port=5000)
