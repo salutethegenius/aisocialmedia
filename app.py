@@ -5,6 +5,11 @@ from sqlalchemy.orm import DeclarativeBase
 from werkzeug.security import generate_password_hash, check_password_hash
 from openai import OpenAI
 import secrets
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     pass
@@ -34,15 +39,15 @@ def create_test_user():
             test_user.set_password('testpassword')
             db.session.add(test_user)
             db.session.commit()
-            print("Test user created successfully.")
-            print(f"Username: {test_user.username}")
-            print(f"Email: {test_user.email}")
-            print(f"Password hash: {test_user.password_hash}")
+            logger.info("Test user created successfully.")
+            logger.info(f"Username: {test_user.username}")
+            logger.info(f"Email: {test_user.email}")
+            logger.info(f"Password hash: {test_user.password_hash}")
         else:
-            print("Test user already exists.")
-            print(f"Username: {test_user.username}")
-            print(f"Email: {test_user.email}")
-            print(f"Password hash: {test_user.password_hash}")
+            logger.info("Test user already exists.")
+            logger.info(f"Username: {test_user.username}")
+            logger.info(f"Email: {test_user.email}")
+            logger.info(f"Password hash: {test_user.password_hash}")
 
 @app.route('/')
 def index():
@@ -54,17 +59,18 @@ def login():
         username = request.form['username']
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
-        print(f"Login attempt - Username: {username}")
+        logger.info(f"Login attempt - Username: {username}")
         if user:
-            print(f"User found - Password hash: {user.password_hash}")
+            logger.info(f"User found - Username: {user.username}, Email: {user.email}")
+            logger.info(f"Stored password hash: {user.password_hash}")
             if check_password_hash(user.password_hash, password):
-                print("Password check successful")
+                logger.info("Password check successful")
                 session['user_id'] = user.id
                 return redirect(url_for('dashboard'))
             else:
-                print("Password check failed")
+                logger.info("Password check failed")
         else:
-            print("User not found")
+            logger.info("User not found")
         return render_template('login.html', error='Invalid username or password')
     return render_template('login.html')
 
@@ -124,5 +130,6 @@ def update_content():
     return jsonify({'error': 'Content not found or unauthorized'}), 404
 
 if __name__ == '__main__':
+    logger.info("Starting the application...")
     create_test_user()
     app.run(host='0.0.0.0', port=5000)
