@@ -9,6 +9,7 @@ from sqlalchemy import func
 import stripe
 import threading
 import time
+import traceback
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -71,6 +72,7 @@ def generate_content():
         
         return jsonify({'content': content, 'tokens_used': tokens_used, 'id': new_content.id})
     except Exception as e:
+        logger.error(f"Error generating content: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/update_content', methods=['POST'])
@@ -89,26 +91,38 @@ def update_content():
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
     try:
-        content_id = request.json['content_id']
-        scheduled_time = datetime.fromisoformat(request.json['scheduled_time'])
-        platform = request.json['platform']
+        logger.info("Received request to schedule post")
+        content_id = request.json.get('content_id')
+        scheduled_time = request.json.get('scheduled_time')
+        platform = request.json.get('platform')
+        
+        logger.info(f"Received data: content_id={content_id}, scheduled_time={scheduled_time}, platform={platform}")
+        
+        if not all([content_id, scheduled_time, platform]):
+            logger.error("Missing required fields in request")
+            return jsonify({'error': 'Missing required fields'}), 400
+        
+        try:
+            scheduled_time = datetime.fromisoformat(scheduled_time)
+        except ValueError as e:
+            logger.error(f"Invalid date format: {str(e)}")
+            return jsonify({'error': f'Invalid date format: {str(e)}'}), 400
         
         content = Content.query.get(content_id)
         if not content:
+            logger.error(f"Content not found for id: {content_id}")
             return jsonify({'error': 'Content not found'}), 404
         
         new_scheduled_post = ScheduledPost(content_id=content_id, scheduled_time=scheduled_time, platform=platform, status='pending')
         db.session.add(new_scheduled_post)
         db.session.commit()
         
+        logger.info(f"Successfully scheduled post: id={new_scheduled_post.id}")
         return jsonify({'success': True, 'redirect': url_for('project_summary')})
-    except KeyError as e:
-        return jsonify({'error': f'Missing required field: {str(e)}'}), 400
-    except ValueError as e:
-        return jsonify({'error': f'Invalid data format: {str(e)}'}), 400
     except Exception as e:
         logger.error(f"Error scheduling post: {str(e)}")
-        return jsonify({'error': 'An unexpected error occurred'}), 500
+        logger.error(traceback.format_exc())
+        return jsonify({'error': 'An unexpected error occurred', 'details': str(e)}), 500
 
 @app.route('/get_scheduled_posts')
 def get_scheduled_posts():

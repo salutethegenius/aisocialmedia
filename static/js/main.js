@@ -122,6 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const platform = document.getElementById('schedule-platform').value;
 
             try {
+                console.log('Sending schedule post request:', { content_id: contentId, scheduled_time: scheduledTime, platform });
                 const response = await fetch('/schedule_post', {
                     method: 'POST',
                     headers: {
@@ -130,20 +131,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     body: JSON.stringify({ content_id: contentId, scheduled_time: scheduledTime, platform }),
                 });
 
+                console.log('Schedule post response:', response);
+                const responseData = await response.json();
+                console.log('Schedule post response data:', responseData);
+
                 if (response.ok) {
-                    const result = await response.json();
-                    if (result.redirect) {
-                        window.location.href = result.redirect;
+                    if (responseData.redirect) {
+                        window.location.href = responseData.redirect;
                     } else {
                         scheduleModal.style.display = 'none';
                         loadScheduledPosts();
                     }
                 } else {
-                    const error = await response.json();
-                    throw new Error(error.error || 'Failed to schedule post');
+                    throw new Error(responseData.error || 'Failed to schedule post');
                 }
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error scheduling post:', error);
                 alert('An error occurred while scheduling the post: ' + error.message);
             }
         });
