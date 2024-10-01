@@ -2,19 +2,25 @@
 
 {% block content %}
 <h2>Billing Information</h2>
+
+{% if content %}
+<h3>Content Details:</h3>
+<p><strong>Topic:</strong> {{ content.topic }}</p>
+<p><strong>Tone:</strong> {{ content.tone }}</p>
+<p><strong>Preview:</strong> {{ content.content[:100] }}...</p>
+<p><strong>Tokens Used:</strong> {{ content.tokens_used }}</p>
+<p><strong>Total Cost:</strong> ${{ "%.2f"|format(content.tokens_used * 0.05) }}</p>
+{% endif %}
+
 <form method="POST" action="{{ url_for('billing') }}">
-    <div>
-        <label for="card_number">Credit Card Number:</label>
-        <input type="text" id="card_number" name="card_number" required>
-    </div>
-    <div>
-        <label for="expiration_date">Expiration Date:</label>
-        <input type="text" id="expiration_date" name="expiration_date" placeholder="MM/YY" required>
-    </div>
-    <div>
-        <label for="cvv">CVV:</label>
-        <input type="text" id="cvv" name="cvv" required>
-    </div>
-    <button type="submit">Process Payment</button>
+    <button type="submit" id="checkout-button">Proceed to Checkout</button>
 </form>
+
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+    var checkoutButton = document.getElementById('checkout-button');
+    checkoutButton.addEventListener('click', function() {
+        // We'll handle the checkout in the server-side
+    });
+</script>
 {% endblock %}

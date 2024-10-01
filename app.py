@@ -6,6 +6,7 @@ from openai import OpenAI
 import logging
 from datetime import datetime
 from sqlalchemy import func
+import stripe
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -25,6 +26,11 @@ OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 openai_client = OpenAI(api_key=OPENAI_API_KEY)
+
+STRIPE_API_KEY = os.environ.get("STRIPE_API_KEY")
+if not STRIPE_API_KEY:
+    raise ValueError("STRIPE_API_KEY environment variable is not set")
+stripe.api_key = STRIPE_API_KEY
 
 with app.app_context():
     db.create_all()
@@ -78,7 +84,6 @@ def update_content():
 
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
-    # Redirect to project summary page instead of billing
     return redirect(url_for('project_summary'))
 
 @app.route('/get_scheduled_posts')
@@ -106,9 +111,36 @@ def project_summary():
 @app.route('/billing', methods=['GET', 'POST'])
 def billing():
     if request.method == 'POST':
-        # Dummy processing function that always returns success
-        return redirect(url_for('thank_you'))
-    return render_template('billing.html')
+        try:
+            recent_content = Content.query.order_by(Content.id.desc()).first()
+            
+            amount = recent_content.tokens_used * 5  # Amount in cents
+            
+            checkout_session = stripe.checkout.Session.create(
+                payment_method_types=['card'],
+                line_items=[{
+                    'price_data': {
+                        'currency': 'usd',
+                        'unit_amount': amount,
+                        'product_data': {
+                            'name': f'Content: {recent_content.topic}',
+                            'description': f'Generated content with {recent_content.tokens_used} tokens',
+                        },
+                    },
+                    'quantity': 1,
+                }],
+                mode='payment',
+                success_url=url_for('thank_you', _external=True),
+                cancel_url=url_for('billing', _external=True),
+            )
+            
+            return redirect(checkout_session.url, code=303)
+        except Exception as e:
+            return str(e), 400
+    
+    recent_content = Content.query.order_by(Content.id.desc()).first()
+    
+    return render_template('billing.html', content=recent_content)
 
 @app.route('/thank_you')
 def thank_you():

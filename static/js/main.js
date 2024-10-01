@@ -128,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    // Handle redirection to project summary page
                     window.location.href = response.url;
                 } else {
                     throw new Error('Failed to schedule post');
@@ -141,6 +140,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadScheduledPosts() {
+        const scheduledPostsList = document.getElementById('scheduled-posts-list');
+        if (!scheduledPostsList) {
+            console.log('Scheduled posts list not found on this page');
+            return;
+        }
         try {
             const response = await fetch('/get_scheduled_posts');
             if (response.ok) {
