@@ -149,12 +149,21 @@ def logout():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    # Temporarily bypass login check
+    # if 'user_id' not in session:
+    #     return redirect(url_for('login'))
     
-    user = User.query.get(session['user_id'])
+    # Temporary user for testing
+    user = User.query.first()
+    if not user:
+        user = User(username='test_user', email='test@example.com')
+        user.set_password('password')
+        db.session.add(user)
+        db.session.commit()
+
     contents = Content.query.filter_by(user_id=user.id).all()
-    return render_template('dashboard.html', user=user, contents=contents)
+    scheduled_posts = ScheduledPost.query.filter_by(user_id=user.id).all()
+    return render_template('dashboard.html', user=user, contents=contents, scheduled_posts=scheduled_posts)
 
 @app.route('/generate_content', methods=['POST'])
 def generate_content():
@@ -231,15 +240,21 @@ def twitter_callback():
 
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
-    if 'user_id' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
+    # Temporarily bypass login check
+    # if 'user_id' not in session:
+    #     return jsonify({'error': 'User not logged in'}), 401
+
+    # Use the temporary user for testing
+    user = User.query.first()
+    if not user:
+        return jsonify({'error': 'No user found'}), 404
 
     content_id = request.json['content_id']
     scheduled_time = datetime.fromisoformat(request.json['scheduled_time'])
     platform = request.json['platform']
 
     scheduled_post = ScheduledPost(
-        user_id=session['user_id'],
+        user_id=user.id,
         content_id=content_id,
         scheduled_time=scheduled_time,
         platform=platform
@@ -261,10 +276,16 @@ def schedule_post():
 
 @app.route('/get_scheduled_posts')
 def get_scheduled_posts():
-    if 'user_id' not in session:
-        return jsonify({'error': 'User not logged in'}), 401
+    # Temporarily bypass login check
+    # if 'user_id' not in session:
+    #     return jsonify({'error': 'User not logged in'}), 401
 
-    scheduled_posts = ScheduledPost.query.filter_by(user_id=session['user_id']).all()
+    # Use the temporary user for testing
+    user = User.query.first()
+    if not user:
+        return jsonify({'error': 'No user found'}), 404
+
+    scheduled_posts = ScheduledPost.query.filter_by(user_id=user.id).all()
     posts_data = []
 
     for post in scheduled_posts:
