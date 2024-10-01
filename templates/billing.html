@@ -14,7 +14,8 @@
 <script src="https://js.stripe.com/v3/"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var stripe = Stripe('{{ STRIPE_PUBLISHABLE_KEY }}');
+        var stripePublishableKey = '{{ STRIPE_PUBLISHABLE_KEY }}';
+        var stripe = Stripe(stripePublishableKey);
         var checkoutButton = document.getElementById('checkout-button');
         var loadingIndicator = document.getElementById('loading');
         var errorMessage = document.getElementById('error-message');

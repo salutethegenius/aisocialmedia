@@ -170,11 +170,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const session = await response.json();
                 console.log('Received session ID:', session.id);
                 
-                if (!stripe) {
+                if (typeof Stripe === 'undefined') {
                     console.error('Stripe.js not loaded');
                     throw new Error('Stripe.js not loaded');
                 }
 
+                const stripe = Stripe(stripePublishableKey);
                 const result = await stripe.redirectToCheckout({ sessionId: session.id });
 
                 if (result.error) {
