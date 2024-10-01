@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from openai import OpenAI
@@ -19,6 +19,7 @@ class Base(DeclarativeBase):
 db = SQLAlchemy(model_class=Base)
 app = Flask(__name__)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback_secret_key")
 
 from models import Content, ScheduledPost
 
@@ -95,7 +96,7 @@ def schedule_post():
     db.session.add(new_scheduled_post)
     db.session.commit()
     
-    return redirect(url_for('project_summary'))
+    return jsonify({'success': True, 'message': 'Post scheduled successfully'}), 200
 
 @app.route('/get_scheduled_posts')
 def get_scheduled_posts():
@@ -140,8 +141,9 @@ def billing():
                     'quantity': 1,
                 }],
                 mode='payment',
-                success_url=request.host_url + url_for('thank_you'),
-                cancel_url=request.host_url + url_for('billing'),
+                success_url=request.host_url + url_for('thank_you', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
+                cancel_url=request.host_url + url_for('billing', _external=True),
+                metadata={'total_credits': total_credits}
             )
             
             return jsonify({'id': checkout_session.id})
@@ -175,10 +177,22 @@ def stripe_webhook():
             ScheduledPost.query.filter_by(status='pending').update({ScheduledPost.status: 'paid'})
             db.session.commit()
 
+        logger.info(f"Updated scheduled posts to 'paid' for session {session.id}")
+
     return '', 200
 
 @app.route('/thank_you')
 def thank_you():
+    session_id = request.args.get('session_id')
+    if session_id:
+        try:
+            checkout_session = stripe.checkout.Session.retrieve(session_id)
+            amount_paid = checkout_session.amount_total / 100  # Convert cents to dollars
+            total_credits = checkout_session.metadata.get('total_credits', 0)
+            return render_template('thank_you.html', amount_paid=amount_paid, total_credits=total_credits)
+        except Exception as e:
+            logger.error(f"Error retrieving checkout session: {str(e)}")
+    
     return render_template('thank_you.html')
 
 def simulate_posting():
