@@ -143,6 +143,7 @@ def project_summary():
 def billing():
     if request.method == 'POST':
         try:
+            logger.info("Starting Stripe checkout session creation")
             total_credits = db.session.query(func.sum(Content.tokens_used)).scalar() or 0
             amount = int(total_credits * 5)  # $0.05 per token, convert to cents
             
@@ -162,12 +163,17 @@ def billing():
                 mode='payment',
                 success_url=request.host_url + url_for('thank_you', _external=True) + '?session_id={CHECKOUT_SESSION_ID}',
                 cancel_url=request.host_url + url_for('billing', _external=True),
-                metadata={'total_credits': total_credits}
+                metadata={'total_credits': str(total_credits)}
             )
             
+            logger.info(f"Stripe checkout session created successfully: {checkout_session.id}")
             return jsonify({'id': checkout_session.id})
+        except stripe.error.StripeError as e:
+            logger.error(f"Stripe error: {str(e)}")
+            return jsonify({'error': str(e)}), 400
         except Exception as e:
-            return str(e), 400
+            logger.error(f"Unexpected error in billing route: {str(e)}")
+            return jsonify({'error': 'An unexpected error occurred'}), 500
     
     total_credits = db.session.query(func.sum(Content.tokens_used)).scalar() or 0
     project_cost = total_credits * 0.05  # $0.05 per token

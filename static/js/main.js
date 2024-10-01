@@ -14,6 +14,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeScheduleModalBtn = document.getElementById('close-schedule-modal');
     const scheduleForm = document.getElementById('schedule-form');
     const scheduledPostsList = document.getElementById('scheduled-posts-list');
+    const checkoutButton = document.getElementById('checkout-button');
+    const loadingIndicator = document.getElementById('loading');
+    const errorMessage = document.getElementById('error-message');
 
     let currentContentId = null;
 
@@ -136,6 +139,35 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) {
                 console.error('Error:', error);
                 alert('An error occurred while scheduling the post: ' + error.message);
+            }
+        });
+    }
+
+    if (checkoutButton && loadingIndicator && errorMessage) {
+        checkoutButton.addEventListener('click', async () => {
+            loadingIndicator.style.display = 'block';
+            errorMessage.textContent = '';
+
+            try {
+                const response = await fetch('/billing', {
+                    method: 'POST',
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const session = await response.json();
+                const result = await stripe.redirectToCheckout({ sessionId: session.id });
+
+                if (result.error) {
+                    throw new Error(result.error.message);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                errorMessage.textContent = 'An error occurred: ' + error.message;
+            } finally {
+                loadingIndicator.style.display = 'none';
             }
         });
     }
