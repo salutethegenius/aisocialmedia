@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Welcome, {{ user.username }}!</h2>
+
+<div id="content-generator">
+    <h3>Generate New Content</h3>
+    <form id="generate-form">
+        <div>
+            <label for="topic">Topic:</label>
+            <input type="text" id="topic" name="topic" required>
+        </div>
+        <div>
+            <label for="tone">Tone:</label>
+            <select id="tone" name="tone" required>
+                <option value="informative">Informative</option>
+                <option value="casual">Casual</option>
+                <option value="professional">Professional</option>
+                <option value="humorous">Humorous</option>
+            </select>
+        </div>
+        <button type="submit">Generate Content</button>
+    </form>
+    <div id="generated-content" style="display: none;">
+        <h4>Generated Content:</h4>
+        <textarea id="content-text" rows="10" cols="50"></textarea>
+        <p>Tokens used: <span id="tokens-used"></span></p>
+        <button id="save-content">Save Content</button>
+    </div>
+</div>
+
+<div id="saved-contents">
+    <h3>Saved Contents</h3>
+    {% for content in contents %}
+        <div class="content-item">
+            <h4>{{ content.topic }} ({{ content.tone }})</h4>
+            <p>{{ content.content[:100] }}...</p>
+            <p>Tokens used: {{ content.tokens_used }}</p>
+            <button class="edit-content" data-id="{{ content.id }}">Edit</button>
+        </div>
+    {% endfor %}
+</div>
+
+<div id="edit-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>Edit Content</h3>
+        <textarea id="edit-content-text" rows="10" cols="50"></textarea>
+        <button id="update-content">Update</button>
+        <button id="close-modal">Close</button>
+    </div>
+</div>
+{% endblock %}
