@@ -128,11 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
                 if (response.ok) {
-                    const data = await response.json();
-                    scheduleModal.style.display = 'none';
-                    alert(data.message);
-                    // TODO: Implement redirection to billing page
-                    console.log('Redirecting to billing page...');
+                    // Handle redirection to billing page
+                    window.location.href = response.url;
                 } else {
                     throw new Error('Failed to schedule post');
                 }

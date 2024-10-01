@@ -1,5 +1,5 @@
 import os
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from openai import OpenAI
@@ -77,8 +77,8 @@ def update_content():
 
 @app.route('/schedule_post', methods=['POST'])
 def schedule_post():
-    # Dummy response
-    return jsonify({'success': True, 'message': 'Post scheduled successfully. Proceeding to billing.'})
+    # Redirect to billing page instead of returning JSON
+    return redirect(url_for('billing'))
 
 @app.route('/get_scheduled_posts')
 def get_scheduled_posts():
@@ -95,6 +95,17 @@ def get_scheduled_posts():
         })
 
     return jsonify(posts_data)
+
+@app.route('/billing', methods=['GET', 'POST'])
+def billing():
+    if request.method == 'POST':
+        # Dummy processing function that always returns success
+        return redirect(url_for('thank_you'))
+    return render_template('billing.html')
+
+@app.route('/thank_you')
+def thank_you():
+    return render_template('thank_you.html')
 
 if __name__ == '__main__':
     logger.info("Starting the application...")

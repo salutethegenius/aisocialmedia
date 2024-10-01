@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Billing Information</h2>
+<form method="POST" action="{{ url_for('billing') }}">
+    <div>
+        <label for="card_number">Credit Card Number:</label>
+        <input type="text" id="card_number" name="card_number" required>
+    </div>
+    <div>
+        <label for="expiration_date">Expiration Date:</label>
+        <input type="text" id="expiration_date" name="expiration_date" placeholder="MM/YY" required>
+    </div>
+    <div>
+        <label for="cvv">CVV:</label>
+        <input type="text" id="cvv" name="cvv" required>
+    </div>
+    <button type="submit">Process Payment</button>
+</form>
+{% endblock %}
