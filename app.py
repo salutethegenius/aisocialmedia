@@ -35,8 +35,14 @@ def create_test_user():
             db.session.add(test_user)
             db.session.commit()
             print("Test user created successfully.")
+            print(f"Username: {test_user.username}")
+            print(f"Email: {test_user.email}")
+            print(f"Password hash: {test_user.password_hash}")
         else:
             print("Test user already exists.")
+            print(f"Username: {test_user.username}")
+            print(f"Email: {test_user.email}")
+            print(f"Password hash: {test_user.password_hash}")
 
 @app.route('/')
 def index():
@@ -48,9 +54,17 @@ def login():
         username = request.form['username']
         password = request.form['password']
         user = User.query.filter_by(username=username).first()
-        if user and check_password_hash(user.password_hash, password):
-            session['user_id'] = user.id
-            return redirect(url_for('dashboard'))
+        print(f"Login attempt - Username: {username}")
+        if user:
+            print(f"User found - Password hash: {user.password_hash}")
+            if check_password_hash(user.password_hash, password):
+                print("Password check successful")
+                session['user_id'] = user.id
+                return redirect(url_for('dashboard'))
+            else:
+                print("Password check failed")
+        else:
+            print("User not found")
         return render_template('login.html', error='Invalid username or password')
     return render_template('login.html')
 
