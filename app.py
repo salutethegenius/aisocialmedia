@@ -31,24 +31,33 @@ from models import User, Content
 with app.app_context():
     db.create_all()
 
+def test_db_connection():
+    try:
+        with app.app_context():
+            db.session.execute('SELECT 1')
+        logger.info("Database connection successful")
+    except Exception as e:
+        logger.error(f"Database connection failed: {str(e)}")
+
 def create_test_user():
     with app.app_context():
+        logger.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
         logger.info("Attempting to create test user...")
-        test_user = User.query.filter_by(username='testuser').first()
-        if not test_user:
-            test_user = User(username='testuser', email='testuser@example.com')
-            test_user.set_password('testpassword')
-            db.session.add(test_user)
-            db.session.commit()
-            logger.info("Test user created successfully.")
+        try:
+            test_user = User.query.filter_by(username='testuser').first()
+            if not test_user:
+                test_user = User(username='testuser', email='testuser@example.com')
+                test_user.set_password('testpassword')
+                db.session.add(test_user)
+                db.session.commit()
+                logger.info("Test user created successfully.")
+            else:
+                logger.info("Test user already exists.")
             logger.info(f"Username: {test_user.username}")
             logger.info(f"Email: {test_user.email}")
             logger.info(f"Password hash: {test_user.password_hash}")
-        else:
-            logger.info("Test user already exists.")
-            logger.info(f"Username: {test_user.username}")
-            logger.info(f"Email: {test_user.email}")
-            logger.info(f"Password hash: {test_user.password_hash}")
+        except Exception as e:
+            logger.error(f"Error creating/retrieving test user: {str(e)}")
 
 def print_all_users():
     with app.app_context():
@@ -67,20 +76,26 @@ def login():
         username = request.form['username']
         password = request.form['password']
         logger.info(f"Login attempt - Username: {username}")
-        logger.info(f"Submitted password hash: {generate_password_hash(password)}")
+        logger.info(f"Database URI: {app.config['SQLALCHEMY_DATABASE_URI']}")
         
-        user = User.query.filter_by(username=username).first()
-        if user:
-            logger.info(f"User found - Username: {user.username}, Email: {user.email}")
-            logger.info(f"Stored password hash: {user.password_hash}")
-            if check_password_hash(user.password_hash, password):
-                logger.info("Password check successful")
-                session['user_id'] = user.id
-                return redirect(url_for('dashboard'))
+        try:
+            user = User.query.filter_by(username=username).first()
+            logger.info(f"Database query result: {user}")
+            
+            if user:
+                logger.info(f"User found - Username: {user.username}, Email: {user.email}")
+                logger.info(f"Stored password hash: {user.password_hash}")
+                if check_password_hash(user.password_hash, password):
+                    logger.info("Password check successful")
+                    session['user_id'] = user.id
+                    return redirect(url_for('dashboard'))
+                else:
+                    logger.info("Password check failed")
             else:
-                logger.info("Password check failed")
-        else:
-            logger.info("User not found")
+                logger.info("User not found")
+        except Exception as e:
+            logger.error(f"Error during login process: {str(e)}")
+        
         return render_template('login.html', error='Invalid username or password')
     return render_template('login.html')
 
@@ -141,6 +156,7 @@ def update_content():
 
 if __name__ == '__main__':
     logger.info("Starting the application...")
+    test_db_connection()
     create_test_user()
     print_all_users()
     app.run(host='0.0.0.0', port=5000)
