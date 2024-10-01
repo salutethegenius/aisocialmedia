@@ -1,17 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Welcome, {{ user.username }}!</h2>
-
-<div id="social-media-connections">
-    <h3>Social Media Connections</h3>
-    {% if user.twitter_token %}
-        <p>Twitter: Connected</p>
-    {% else %}
-        <a href="{{ url_for('twitter_login') }}" class="btn">Connect Twitter</a>
-    {% endif %}
-    <!-- Add other social media platforms here -->
-</div>
+<h2>Dashboard</h2>
 
 <div id="content-generator">
     <h3>Generate New Content</h3>

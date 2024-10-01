@@ -36,14 +36,6 @@ jobstores = {
 scheduler = BackgroundScheduler(jobstores=jobstores)
 scheduler.start()
 
-def create_default_user():
-    logger.info("Creating default user for demonstration purposes")
-    # This function is now just a placeholder, as we're not using User model anymore
-
-def print_all_users():
-    logger.info("Printing all users in the database (placeholder)")
-    # This function is now just a placeholder, as we're not using User model anymore
-
 def post_scheduled_content(scheduled_post_id):
     with app.app_context():
         scheduled_post = ScheduledPost.query.get(scheduled_post_id)
@@ -145,6 +137,4 @@ def get_scheduled_posts():
 
 if __name__ == '__main__':
     logger.info("Starting the application...")
-    create_default_user()
-    print_all_users()
     app.run(host='0.0.0.0', port=5000)
